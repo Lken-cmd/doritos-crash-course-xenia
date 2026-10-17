@@ -6,14 +6,16 @@ Give it the game, Title Update 2 and the City Lights DLC (packages or .zip
 files, in any order, or folders that contain them); without arguments it
 asks. It tells the packages apart by their headers, builds the mod
 (build_mod.py), installs the update and the DLC into Xenia's content folder
-(install_content.py), switches Xenia to the full game instead of the trial,
-and saves Xenia's location for "Play Doritos Crash Course.bat".
+(install_content.py), copies the game patch into Xenia's patches folder,
+switches Xenia to the full game instead of the trial, and saves Xenia's
+location for "Play Doritos Crash Course.bat".
 """
 import argparse
 import contextlib
 import os
 import re
 import shlex
+import shutil
 import sys
 
 import build_mod
@@ -24,6 +26,7 @@ TITLE_ID = 0x58410A71
 GAME, UPDATE, DLC = 0x000D0000, 0x000B0000, 0x00000002
 NAMES = {GAME: "game", UPDATE: "title update", DLC: "City Lights DLC"}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PATCH = os.path.join(ROOT, "patches", "58410A71 - Doritos Crash Course.patch.toml")
 
 
 def documents_dir():
@@ -145,6 +148,10 @@ def main():
             install_content.install(pkgs[UPDATE], user_dir, os.path.join(args.build, "update"))
         if DLC in pkgs:
             install_content.install(pkgs[DLC], user_dir)
+        patches = os.path.join(user_dir, "patches")
+        os.makedirs(patches, exist_ok=True)
+        shutil.copy(PATCH, patches)
+        print(f"  patch: {os.path.join(patches, os.path.basename(PATCH))}")
 
     config = os.path.join(user_dir, "xenia-canary.config.toml")
     full = enable_full_game(config)

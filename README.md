@@ -4,13 +4,16 @@ Xenia can't draw Xbox 360 avatars, so the runners in Doritos Crash Course
 (XBLA, `58410A71`) are invisible. This mod replaces them with the game's
 built-in stand-in character, one shirt colour per player.
 
-Only data files are changed; the game's executable is untouched. This repo
+Mostly data files are changed. The executable stays untouched on disk; a
+small Xenia patch file fixes the player colours in memory. This repo
 contains no game files.
 
 ## Features
 
 - 4 visible players: P1 blue, P2 red, P3 green, P4 yellow (runners, ghost,
   lobby, credits)
+- A runner's shirt matches their lobby frame, HUD and billboard (Xenia
+  patch, needs Title Update 2)
 - City Lights DLC, through Title Update 2
 - Multiplayer helicopter billboards show the players
 - No Xbox LIVE messages before matches or on the results screen
@@ -30,8 +33,9 @@ contains no game files.
 2. Enter your game files (any order) and, if it isn't
    `Documents\Xenia Canary`, your Xenia folder.
 
-Setup builds the mod into `build\`, installs the update and the DLC into
-Xenia, and sets `license_mask = 1` (full game instead of the trial).
+Setup builds the mod into `build\`, installs the update, the DLC and the
+patch file into Xenia, and sets `license_mask = 1` (full game instead of
+the trial).
 
 ## Play
 
@@ -45,10 +49,12 @@ pip install -r requirements.txt
 python tools\build_mod.py <game> build [<title update>]
 python tools\install_content.py <title update> <Xenia folder> --override-dir build\update
 python tools\install_content.py <DLC> <Xenia folder>
+copy "patches\58410A71 - Doritos Crash Course.patch.toml" "<Xenia folder>\patches\"
 ```
 
 `<Xenia folder>` is Xenia's own folder in portable mode (`portable.txt`
-next to the exe), otherwise `Documents\Xenia`.
+next to the exe), otherwise `Documents\Xenia`. The patch needs
+`apply_patches = true` in Xenia's config (the default).
 
 ## How it works
 
@@ -67,9 +73,17 @@ next to the exe), otherwise `Documents\Xenia`.
   `false`, so matches start as local matches (`lua51.py`). The results
   screen's leaderboard text is blanked.
 - **Title update:** the same changes are applied on top of its `patch.pak`.
+- **Player colours:** the HUD, progress bar and billboards are coloured by
+  race slot, but the game picked the runner by controller, and it numbered
+  the race slots in join order while the lobby shows each player in their
+  controller's frame. The patch file has the runner follow the slot and sorts
+  the race slots by controller. So all colours agree whenever controllers
+  1..N play; with controller 1 unused, the race colours start at P1 blue
+  anyway.
 
 | File | Purpose |
 |---|---|
+| `patches/58410A71 - Doritos Crash Course.patch.toml` | Xenia patch: player colours (for Title Update 2) |
 | `setup_mod.py` | finds the packages, builds, installs, configures Xenia |
 | `build_mod.py` | builds `build/game/` and `build/update/` |
 | `install_content.py` | installs a package into Xenia's content folder |

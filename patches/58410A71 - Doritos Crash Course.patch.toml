@@ -1,0 +1,125 @@
+title_name = "Doritos Crash Course"
+title_id = "58410A71"
+# Module hash of default.xex after title update 2 (v0.0.2.2) is applied.
+hash = "968B6852423DC22D"
+
+[[patch]]
+    name = "Shirt colour by player slot"
+    desc = "The runner was picked by controller (fighter template player/gamepad<controller>), while the HUD, the progress bar and the helicopter billboards are coloured by race slot (P1 blue, P2 red, P3 green, P4 yellow); e.g. a single player on controller 2 ran in red under the blue P1 HUD. The runner now uses the slot, and a lobby avatar the colour of its lobby frame. Needs the mod's data (player/gamepad<N> and avatar/gamepad<N> = the stand-in in shirt colour N+1)."
+    author = "crash course mod"
+    is_enabled = true
+
+    # GAMEXA player creation (829D09D0, r28 = slot): the fighter template comes
+    # from a table of player/gamepad<N> names indexed by the controller.
+    # 829D0C0C lwz r31, 4(r31) (profile's controller) -> mr r31, r28 (slot)
+    [[patch.be32]]
+        address = 0x829D0C0C
+        value = 0x7F9FE378
+
+    # GUIXA::LoadAvatarInLobby (829DA6F8, r30 = lobby frame as in join%d,
+    # r26 = avatar index): GRES:avatar/gamepad%d with the frame. In local
+    # games both are the controller already; this covers the paths where the
+    # frame is the net player index.
+    # 829DA830 mr r5, r26 -> mr r5, r30
+    [[patch.be32]]
+        address = 0x829DA830
+        value = 0x7FC5F378
+
+[[patch]]
+    name = "Race order by controller"
+    desc = "In local multiplayer the lobby shows each player in the frame of their controller (controller 1 blue, 2 red, 3 green, 4 yellow), but the race numbered the players in join order, so whoever pressed A first became P1 (blue) even on controller 2. The race now sorts the players by controller, so lobby frame, runner, HUD and billboards agree whenever controllers 1..N play."
+    author = "crash course mod"
+    is_enabled = true
+
+    # GAMEXA player setup (829CE3B0) fills the race entries in join order:
+    # [0x82C0479C] + 0x188 + 0x40*slot, with +0x10 slot, +0x14 net player
+    # index, +0x18 profile (profile+4 = controller); then it stores the count.
+    # There, r22 = GAMEXA, r19 = player count, r27 = NETMANXA.
+    # 829CE66C stw r19, 0x180(r22) -> b 0x82ACED40
+    [[patch.be32]]
+        address = 0x829CE66C
+        value = 0x481006D4
+
+    # The cave sits in the zero padding after the .embsec_ code section
+    # (which ends at 0x82ACED3C), in the same code page.
+    [[patch.be32]]  # stw r19, 0x180(r22)       the replaced instruction: player count
+        address = 0x82ACED40
+        value = 0x92760180
+    [[patch.be32]]  # lwz r11, 0xa8(r27)        NETMANXA game mode
+        address = 0x82ACED44
+        value = 0x817B00A8
+    [[patch.be32]]  # cmpwi cr6, r11, 0
+        address = 0x82ACED48
+        value = 0x2F0B0000
+    [[patch.be32]]  # bne cr6, 0x82aceda8       only local games (mode 0)
+        address = 0x82ACED4C
+        value = 0x409A005C
+    [[patch.be32]]  # li r10, 3
+        address = 0x82ACED50
+        value = 0x39400003
+    [[patch.be32]]  # mtctr r10                 3 bubble-sort passes sort up to 4 players
+        address = 0x82ACED54
+        value = 0x7D4903A6
+    [[patch.be32]]  # addi r3, r22, 0x188       entry k = slot 0
+        address = 0x82ACED58
+        value = 0x38760188
+    [[patch.be32]]  # addi r9, r19, -1          pairs left = count - 1
+        address = 0x82ACED5C
+        value = 0x3933FFFF
+    [[patch.be32]]  # cmpwi cr6, r9, 0
+        address = 0x82ACED60
+        value = 0x2F090000
+    [[patch.be32]]  # ble cr6, 0x82aceda4
+        address = 0x82ACED64
+        value = 0x40990040
+    [[patch.be32]]  # lwz r5, 0x18(r3)          profiles of entries k and k+1
+        address = 0x82ACED68
+        value = 0x80A30018
+    [[patch.be32]]  # lwz r6, 0x58(r3)
+        address = 0x82ACED6C
+        value = 0x80C30058
+    [[patch.be32]]  # lwz r7, 4(r5)             their controllers
+        address = 0x82ACED70
+        value = 0x80E50004
+    [[patch.be32]]  # lwz r8, 4(r6)
+        address = 0x82ACED74
+        value = 0x81060004
+    [[patch.be32]]  # cmplw cr6, r7, r8
+        address = 0x82ACED78
+        value = 0x7F074040
+    [[patch.be32]]  # ble cr6, 0x82aced98       already in order
+        address = 0x82ACED7C
+        value = 0x4099001C
+    [[patch.be32]]  # stw r6, 0x18(r3)          swap the profiles
+        address = 0x82ACED80
+        value = 0x90C30018
+    [[patch.be32]]  # stw r5, 0x58(r3)
+        address = 0x82ACED84
+        value = 0x90A30058
+    [[patch.be32]]  # lwz r5, 0x14(r3)          and the net player indexes
+        address = 0x82ACED88
+        value = 0x80A30014
+    [[patch.be32]]  # lwz r6, 0x54(r3)
+        address = 0x82ACED8C
+        value = 0x80C30054
+    [[patch.be32]]  # stw r6, 0x14(r3)
+        address = 0x82ACED90
+        value = 0x90C30014
+    [[patch.be32]]  # stw r5, 0x54(r3)
+        address = 0x82ACED94
+        value = 0x90A30054
+    [[patch.be32]]  # addi r3, r3, 0x40
+        address = 0x82ACED98
+        value = 0x38630040
+    [[patch.be32]]  # addi r9, r9, -1
+        address = 0x82ACED9C
+        value = 0x3929FFFF
+    [[patch.be32]]  # b 0x82aced60
+        address = 0x82ACEDA0
+        value = 0x4BFFFFC0
+    [[patch.be32]]  # bdnz 0x82aced58
+        address = 0x82ACEDA4
+        value = 0x4200FFB4
+    [[patch.be32]]  # b 0x829ce670              back to the end of the setup
+        address = 0x82ACEDA8
+        value = 0x4BEFF8C8
