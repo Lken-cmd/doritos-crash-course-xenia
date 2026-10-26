@@ -1,0 +1,97 @@
+title_name = "Doritos Crash Course"
+title_id = "58410A71"
+# default.xex with Title Update 2 (v0.0.2.2).
+hash = "968B6852423DC22D"
+
+[[patch]]
+    name = "Players numbered by join order"
+    desc = "The first player to join is P1, whatever the controller: local lobby frames, names, race slots and the runner's shirt (P1 blue, P2 red, P3 green, P4 yellow, like the HUD and the billboards) all follow the join order. Needs the mod's data (its lobby script asks IsSlotUsed(frame + 4))."
+    author = "crash course mod"
+    is_enabled = true
+
+    # Fighter template by slot: 829D0C0C lwz r31, 4(r31) (controller) -> mr r31, r28 (slot)
+    [[patch.be32]]
+        address = 0x829D0C0C
+        value = 0x7F9FE378
+
+    # Lobby avatar by frame: 829DA830 mr r5, r26 -> mr r5, r30
+    [[patch.be32]]
+        address = 0x829DA830
+        value = 0x7FC5F378
+
+    # NETMANXA::OnPlayerJoin, local game: frame = player index (join order) like online
+    # 82984FD0 lwz r6, 4(r31) -> lwz r7, 4(r31) (controller); 82984FD4 mr r7, r6 -> mr r6, r28
+    [[patch.be32]]
+        address = 0x82984FD0
+        value = 0x80FF0004
+    [[patch.be32]]
+        address = 0x82984FD4
+        value = 0x7F86E378
+    # Leaving player: 82988084 lwz r3, 4(r3) (local: controller) -> mr r3, r29 (join index)
+    [[patch.be32]]
+        address = 0x82988084
+        value = 0x7FA3EB78
+
+    # Cave 82ACED40: IsSlotUsed (arg >= 4: join index) at 82ACED40, GameGamepadName by join index at 82ACED58
+    [[patch.be32]]
+        address = 0x82ACED40
+        value = 0x2B040004
+    [[patch.be32]]
+        address = 0x82ACED44
+        value = 0x4198000C
+    [[patch.be32]]
+        address = 0x82ACED48
+        value = 0x3884FFFC
+    [[patch.be32]]
+        address = 0x82ACED4C
+        value = 0x4BEAF028
+    [[patch.be32]]
+        address = 0x82ACED50
+        value = 0x3D6082C5
+    [[patch.be32]]
+        address = 0x82ACED54
+        value = 0x4BEAEFF0
+    [[patch.be32]]
+        address = 0x82ACED58
+        value = 0x81210050
+    [[patch.be32]]
+        address = 0x82ACED5C
+        value = 0x3D4082C5
+    [[patch.be32]]
+        address = 0x82ACED60
+        value = 0x814A2210
+    [[patch.be32]]
+        address = 0x82ACED64
+        value = 0x814A00E8
+    [[patch.be32]]
+        address = 0x82ACED68
+        value = 0x552815BA
+    [[patch.be32]]
+        address = 0x82ACED6C
+        value = 0x7D48502E
+    [[patch.be32]]
+        address = 0x82ACED70
+        value = 0x2B0A0000
+    [[patch.be32]]
+        address = 0x82ACED74
+        value = 0x419A0010
+    [[patch.be32]]
+        address = 0x82ACED78
+        value = 0x814A0008
+    [[patch.be32]]
+        address = 0x82ACED7C
+        value = 0x812A0004
+    [[patch.be32]]
+        address = 0x82ACED80
+        value = 0x4BF0ED64
+    [[patch.be32]]
+        address = 0x82ACED84
+        value = 0x4BF0EDAC
+    # 8297DD40 (IsSlotUsed) -> cave
+    [[patch.be32]]
+        address = 0x8297DD40
+        value = 0x48151000
+    # 829DDAE0 lwz r9, 0x50(r1) (GameGamepadName arg) -> cave
+    [[patch.be32]]
+        address = 0x829DDAE0
+        value = 0x480F1278

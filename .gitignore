@@ -1,0 +1,6 @@
+# Game files are copyrighted; never commit build output or originals.
+build/
+originals/
+__pycache__/
+# Release zips (tools/make_release.py).
+dist/
