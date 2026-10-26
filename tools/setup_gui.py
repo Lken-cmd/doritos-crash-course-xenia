@@ -15,11 +15,13 @@ from tkinter.scrolledtext import ScrolledText
 
 import setup_mod as sm
 
-TITLE = "Doritos Crash Course mod - Setup"
+TITLE = "Doritos Crash Course mods - Setup"
 ROWS = [  # (key, label, what it's for when missing)
     ((sm.CC1, sm.GAME), "Doritos Crash Course", "needed to set up Crash Course"),
     ((sm.CC1, sm.UPDATE), "    Title Update 2", "optional: City Lights DLC and shirt colour fix"),
     ((sm.CC1, sm.DLC), "    City Lights DLC", "optional: extra courses, needs Title Update 2"),
+    ((sm.CC2, sm.GAME), "Doritos Crash Course 2", "needed to set up Crash Course 2"),
+    ((sm.CC2, sm.UPDATE), "    Title Update 2", "needed for Crash Course 2"),
 ]
 
 
@@ -43,11 +45,11 @@ class App:
         root.minsize(680, 600)
         pad = {"padx": 12, "pady": 6}
 
-        ttk.Label(root, text="Doritos Crash Course for Xenia",
+        ttk.Label(root, text="Doritos Crash Course 1 & 2 for Xenia",
                   font=("Segoe UI", 14, "bold")).pack(anchor="w", padx=12, pady=(12, 0))
         ttk.Label(root, wraplength=650, justify="left",
-                  text="This builds the mod from your own copy of the game and installs it "
-                       "into Xenia Canary. Your game files are only read, never changed."
+                  text="This builds the mods from your own copies of the games and installs "
+                       "them into Xenia Canary. Your game files are only read, never changed."
                   ).pack(anchor="w", **pad)
 
         files = ttk.LabelFrame(root, text=" 1. Your game files ")
@@ -95,7 +97,7 @@ class App:
         self.install_button = ttk.Button(actions, text="Install", command=self.install)
         self.install_button.pack(side="left")
         self.play_buttons = {}
-        for title, text in ((sm.CC1, "Play Crash Course"),):
+        for title, text in ((sm.CC1, "Play Crash Course"), (sm.CC2, "Play Crash Course 2")):
             self.play_buttons[title] = ttk.Button(actions, text=text,
                                                   command=lambda t=title: self.play(t))
         self.progress = ttk.Progressbar(actions, mode="indeterminate", length=160)

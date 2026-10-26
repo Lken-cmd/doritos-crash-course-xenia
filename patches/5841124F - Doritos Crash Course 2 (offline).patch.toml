@@ -1,0 +1,1204 @@
+title_name = "Doritos Crash Course 2"
+title_id = "5841124F"
+# default.xex with Title Update 2 (v0.0.2.5).
+hash = "1FABD0694F7BF0BA"
+
+# Lua binding thunks call a vtable slot of their object (netman: NETMANXA, vtable 0x821A223C).
+
+[[patch]]
+    name = "Accept a local profile instead of Xbox LIVE"
+    desc = "netman.IsXboxLiveAvailable and netman.IsLoggedIn answer true, so the menus accept a local profile. The game itself stays offline."
+    author = "crash course mod"
+    is_enabled = true
+
+    # IsXboxLiveAvailable: 82AF5BD0 lbzx r6, r11, r8 -> li r6, 1
+    [[patch.be32]]
+        address = 0x82AF5BD0
+        value = 0x38C00001
+
+    # IsLoggedIn: both answers -> li r6, 1
+    [[patch.be32]]
+        address = 0x82AF8850
+        value = 0x38C00001
+    [[patch.be32]]
+        address = 0x82AF8858
+        value = 0x38C00001
+
+[[patch]]
+    name = "Avatar previewer works with the stand-in model"
+    desc = "The World Tour and lobby avatar previewers reset an Xbox avatar after registering it, which crashes on the stand-in model. Skip the reset."
+    author = "crash course mod"
+    is_enabled = true
+
+    # RegisterSinglePreviewer: 82B85C8C beq -> b (skip the reset)
+    [[patch.be32]]
+        address = 0x82B85C8C
+        value = 0x48000034
+
+    # RegisterLobbyPreviewer: 82B8B370 beq -> b (skip the reset)
+    [[patch.be32]]
+        address = 0x82B8B370
+        value = 0x48000040
+
+[[patch]]
+    name = "Hide the Beta build label"
+    desc = "The Beta label flag (0x82D9CA27) starts at 1 and only the server configuration clears it. Start it at 0."
+    author = "crash course mod"
+    is_enabled = true
+
+    [[patch.be8]]
+        address = 0x82D9CA27
+        value = 0x00
+
+[[patch]]
+    name = "Unlock all courses"
+    desc = "Optional: every course and split path unlocked without stars. Off, courses are bought with stars; the first course is free."
+    author = "crash course mod"
+    is_enabled = false
+
+    # ProfileGetIsUnlocked: locked / not found -> li r11, 1; bad slot -> li r6, 1
+    [[patch.be32]]
+        address = 0x82BD10A0
+        value = 0x39600001
+    [[patch.be32]]
+        address = 0x82BD10C4
+        value = 0x38C00001
+
+    # ProfileGetIsSplitPathUnlock: bad-slot answer -> li r6, 1
+    [[patch.be32]]
+        address = 0x82BD1004
+        value = 0x38C00001
+
+    # Locked bytes start at 0: constructor 82B46F58 li r8, 1 -> li r8, 0
+    [[patch.be32]]
+        address = 0x82B46F58
+        value = 0x39000000
+    # Profile reset keeps them 0: 82AF3370 stb r23 -> stb r30
+    [[patch.be32]]
+        address = 0x82AF3370
+        value = 0x9BCA0130
+    # 82AF3374 stb r23 -> stb r30
+    [[patch.be32]]
+        address = 0x82AF3374
+        value = 0x9BCA0134
+
+[[patch]]
+    name = "Create the shop (course list) without LiveGamer"
+    desc = "The World Tour course list lives in the shop, which only LiveGamer created. ProfileGetIsSplitPathUnlock now creates it (the mod's splash script calls it); the categories that need the server stay empty. Needs the mod's data.pak."
+    author = "crash course mod"
+    is_enabled = true
+
+    # 82BD0F90 mr r3, r5 -> bl 0x82B02878 (get or create the shop)
+    [[patch.be32]]
+        address = 0x82BD0F90
+        value = 0x4BF318E9
+    # 82BD0F94 li r5, 1 -> b 0x82BD0FF8 (return r6)
+    [[patch.be32]]
+        address = 0x82BD0F94
+        value = 0x48000064
+
+    # Don't wait for the LiveGamer request queue: 82B025B8 bl -> nop
+    [[patch.be32]]
+        address = 0x82B025B8
+        value = 0x60000000
+
+    # Coin and avatar-item categories (HTTP) stay empty: PopulateCoinsCategory::run -> li r3, 2; blr
+    [[patch.be32]]
+        address = 0x822DA320
+        value = 0x38600002
+    [[patch.be32]]
+        address = 0x822DA324
+        value = 0x4E800020
+    # PopulateVanityItemCategoryTask::run 822D9A10 -> li r3, 2; blr
+    [[patch.be32]]
+        address = 0x822D9A10
+        value = 0x38600002
+    [[patch.be32]]
+        address = 0x822D9A14
+        value = 0x4E800020
+    # Shop destroy 82B00BC8 -> blr (keep the shop)
+    [[patch.be32]]
+        address = 0x82B00BC8
+        value = 0x4E800020
+    # Skip the per-theme store downloads (HTTP): 822DA9DC beq -> b
+    [[patch.be32]]
+        address = 0x822DA9DC
+        value = 0x48000088
+    # ...and their task group: 822DA9BC, 822DAA68 bl -> nop
+    [[patch.be32]]
+        address = 0x822DA9BC
+        value = 0x60000000
+    [[patch.be32]]
+        address = 0x822DAA68
+        value = 0x60000000
+
+[[patch]]
+    name = "Avatar asset refresh skips the stand-in model"
+    desc = "Refreshing an Xbox avatar's assets crashes on the stand-in model: only Xbox avatars with assets are refreshed; also null LiveGamer players and medals without a profile. Uses dead code from 'Create the shop' (keep both enabled)."
+    author = "crash course mod"
+    is_enabled = true
+
+    # 822DA328: guard for 829ECC48 (unused, see 822D9A80)
+    [[patch.be32]]
+        address = 0x822DA328
+        value = 0x81630280
+    [[patch.be32]]
+        address = 0x822DA32C
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822DA330
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822DA334
+        value = 0x7D8802A6
+    [[patch.be32]]
+        address = 0x822DA338
+        value = 0x48712914
+    # 822DA33C: guard for 829EB7C8 (unused, see 822D9AA8)
+    [[patch.be32]]
+        address = 0x822DA33C
+        value = 0x81630280
+    [[patch.be32]]
+        address = 0x822DA340
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822DA344
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822DA348
+        value = 0x81630024
+    [[patch.be32]]
+        address = 0x822DA34C
+        value = 0x48711480
+    # 829ECC48 mflr r12 -> b 0x822D9A80 (guard below)
+    [[patch.be32]]
+        address = 0x829ECC48
+        value = 0x4B8ECE38
+    # 829EB7C8 lwz r11, 0x24(r3) -> b 0x822D9AA8 (guard below)
+    [[patch.be32]]
+        address = 0x829EB7C8
+        value = 0x4B8EE2E0
+    # Apply LiveGamer items (82AF3470): return on a null player; guard at 822DA350
+    [[patch.be32]]
+        address = 0x822DA350
+        value = 0x2B030000
+    [[patch.be32]]
+        address = 0x822DA354
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822DA358
+        value = 0x7D8802A6
+    [[patch.be32]]
+        address = 0x822DA35C
+        value = 0x48819118
+    # 82AF3470 mflr r12 -> b 0x822DA350
+    [[patch.be32]]
+        address = 0x82AF3470
+        value = 0x4B7E6EE0
+    # GetHistoricMedalStars: no profile = no medal: cmpwi r11, -1 -> cmplwi r29, 0 (x3)
+    [[patch.be32]]
+        address = 0x82B77D54
+        value = 0x2B1D0000
+    [[patch.be32]]
+        address = 0x82B77DC8
+        value = 0x2B1D0000
+    [[patch.be32]]
+        address = 0x82B77E3C
+        value = 0x2B1D0000
+    # Guards 822D9A80 / 822D9AA8: return unless a DEFERREDAVATARMODELRESOURCE
+    # (vtable 0x821CCF64) with assets at +0x280
+    [[patch.be32]]
+        address = 0x822D9A80
+        value = 0x81630000
+    [[patch.be32]]
+        address = 0x822D9A84
+        value = 0x3D80821D
+    [[patch.be32]]
+        address = 0x822D9A88
+        value = 0x398CCF64
+    [[patch.be32]]
+        address = 0x822D9A8C
+        value = 0x7F0B6040
+    [[patch.be32]]
+        address = 0x822D9A90
+        value = 0x4C9A0020
+    [[patch.be32]]
+        address = 0x822D9A94
+        value = 0x81630280
+    [[patch.be32]]
+        address = 0x822D9A98
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822D9A9C
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822D9AA0
+        value = 0x7D8802A6
+    [[patch.be32]]
+        address = 0x822D9AA4
+        value = 0x487131A8
+    [[patch.be32]]
+        address = 0x822D9AA8
+        value = 0x81630000
+    [[patch.be32]]
+        address = 0x822D9AAC
+        value = 0x3D80821D
+    [[patch.be32]]
+        address = 0x822D9AB0
+        value = 0x398CCF64
+    [[patch.be32]]
+        address = 0x822D9AB4
+        value = 0x7F0B6040
+    [[patch.be32]]
+        address = 0x822D9AB8
+        value = 0x4C9A0020
+    [[patch.be32]]
+        address = 0x822D9ABC
+        value = 0x81630280
+    [[patch.be32]]
+        address = 0x822D9AC0
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822D9AC4
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822D9AC8
+        value = 0x81630024
+    [[patch.be32]]
+        address = 0x822D9ACC
+        value = 0x48711D00
+
+[[patch]]
+    name = "No 'service not available' kick"
+    desc = "A failed server request sent the player back to the title screen, and offline every request fails. Failed requests are ignored."
+    author = "crash course mod"
+    is_enabled = true
+
+    # 82244720 beq -> b (skip the reaction)
+    [[patch.be32]]
+        address = 0x82244720
+        value = 0x480000E8
+    # Failed REST calls: 82B12320 bne -> b
+    [[patch.be32]]
+        address = 0x82B12320
+        value = 0x48000090
+    # Kernel command lambdas: 822656A0 bne -> b
+    [[patch.be32]]
+        address = 0x822656A0
+        value = 0x48000014
+
+[[patch]]
+    name = "Keep the players in the race"
+    desc = "Races removed every player missing from the (offline empty) network user list, then crashed. Players are never treated as gone."
+    author = "crash course mod"
+    is_enabled = true
+
+    # 82B68228 -> li r3, 0; blr
+    [[patch.be32]]
+        address = 0x82B68228
+        value = 0x38600000
+    [[patch.be32]]
+        address = 0x82B6822C
+        value = 0x4E800020
+
+[[patch]]
+    name = "Local multiplayer lobby without LiveGamer"
+    desc = "The local lobby waited for each player's LiveGamer star data before enabling Start. Report it as loaded."
+    author = "crash course mod"
+    is_enabled = true
+
+    # 82BD1488 li r6, 0 (not loaded / bad slot) -> li r6, 1
+    [[patch.be32]]
+        address = 0x82BD1488
+        value = 0x38C00001
+
+[[patch]]
+    name = "World Tour adds the player"
+    desc = "Offline, a World Tour race started without a player and crashed. The launch adds the controller that owns the menus when the session is empty."
+    author = "crash course mod"
+    is_enabled = true
+
+    # Cave 822DA360: empty session -> add the input owner (82B7DF20), then b 0x82B6BDE0
+    [[patch.be32]]
+        address = 0x822DA360
+        value = 0x7D8802A6
+    [[patch.be32]]
+        address = 0x822DA364
+        value = 0x9181FFF8
+    [[patch.be32]]
+        address = 0x822DA368
+        value = 0x9421FFA0
+    [[patch.be32]]
+        address = 0x822DA36C
+        value = 0x3D6082EE
+    [[patch.be32]]
+        address = 0x822DA370
+        value = 0x816BAA48
+    [[patch.be32]]
+        address = 0x822DA374
+        value = 0x894B0009
+    [[patch.be32]]
+        address = 0x822DA378
+        value = 0x892B0049
+    [[patch.be32]]
+        address = 0x822DA37C
+        value = 0x7D4A4B78
+    [[patch.be32]]
+        address = 0x822DA380
+        value = 0x892B0089
+    [[patch.be32]]
+        address = 0x822DA384
+        value = 0x7D4A4B78
+    [[patch.be32]]
+        address = 0x822DA388
+        value = 0x892B00C9
+    [[patch.be32]]
+        address = 0x822DA38C
+        value = 0x7D4A4B78
+    [[patch.be32]]
+        address = 0x822DA390
+        value = 0x2B0A0000
+    [[patch.be32]]
+        address = 0x822DA394
+        value = 0x409A0014
+    [[patch.be32]]
+        address = 0x822DA398
+        value = 0x3D6082EA
+    [[patch.be32]]
+        address = 0x822DA39C
+        value = 0x816B93F4
+    [[patch.be32]]
+        address = 0x822DA3A0
+        value = 0x806B7260
+    [[patch.be32]]
+        address = 0x822DA3A4
+        value = 0x488A3B7D
+    [[patch.be32]]
+        address = 0x822DA3A8
+        value = 0x38210060
+    [[patch.be32]]
+        address = 0x822DA3AC
+        value = 0x8181FFF8
+    [[patch.be32]]
+        address = 0x822DA3B0
+        value = 0x7D8803A6
+    [[patch.be32]]
+        address = 0x822DA3B4
+        value = 0x48891A2C
+    # 822DB4F0 bl 0x82B6BDE0 -> bl 0x822DA360
+    [[patch.be32]]
+        address = 0x822DB4F0
+        value = 0x4BFFEE71
+
+[[patch]]
+    name = "Players race as the stand-in model"
+    desc = "Players got an Xbox avatar model, which Xenia cannot build (race crash). They now get BNMD:_avatar/player<N>.cfg (N = race slot, so the first to join is P1), AI racers BNMD:_avatar/ai_<name>.cfg, other gameclips the plain stand-in; with guards for avatar-only code. Needs the mod's data.pak."
+    author = "crash course mod"
+    is_enabled = true
+
+    # 822DA3B8: "BNMD:_avatar/dummymodel.cfg"
+    [[patch.be32]]
+        address = 0x822DA3B8
+        value = 0x424E4D44
+    [[patch.be32]]
+        address = 0x822DA3BC
+        value = 0x3A5F6176
+    [[patch.be32]]
+        address = 0x822DA3C0
+        value = 0x61746172
+    [[patch.be32]]
+        address = 0x822DA3C4
+        value = 0x2F64756D
+    [[patch.be32]]
+        address = 0x822DA3C8
+        value = 0x6D796D6F
+    [[patch.be32]]
+        address = 0x822DA3CC
+        value = 0x64656C2E
+    [[patch.be32]]
+        address = 0x822DA3D0
+        value = 0x63666700
+    # 822DA3D4: "BNMD:_avatar/player%d.cfg" (formatted with the controller)
+    [[patch.be32]]
+        address = 0x822DA3D4
+        value = 0x424E4D44
+    [[patch.be32]]
+        address = 0x822DA3D8
+        value = 0x3A5F6176
+    [[patch.be32]]
+        address = 0x822DA3DC
+        value = 0x61746172
+    [[patch.be32]]
+        address = 0x822DA3E0
+        value = 0x2F706C61
+    [[patch.be32]]
+        address = 0x822DA3E4
+        value = 0x79657225
+    [[patch.be32]]
+        address = 0x822DA3E8
+        value = 0x642E6366
+    [[patch.be32]]
+        address = 0x822DA3EC
+        value = 0x67000000
+    # 82B7DF84 lis r11, -0x7de8 -> lis r11, 0x822E
+    [[patch.be32]]
+        address = 0x82B7DF84
+        value = 0x3D60822E
+    # 82B7DF8C mr r5, r30 (controller) -> mr r5, r31 (session slot)
+    [[patch.be32]]
+        address = 0x82B7DF8C
+        value = 0x7FE5FB78
+    # 82B7DF90 addi r4, r11, 0x4af4 ("gamepad%d") -> addi r4, r11, -0x5c2c
+    [[patch.be32]]
+        address = 0x82B7DF90
+        value = 0x388BA3D4
+    # 82B7DF9C-82B7DFAC avatar lookup -> addi r4, r1, 0x60 (the name); nop x4
+    [[patch.be32]]
+        address = 0x82B7DF9C
+        value = 0x38810060
+    [[patch.be32]]
+        address = 0x82B7DFA0
+        value = 0x60000000
+    [[patch.be32]]
+        address = 0x82B7DFA4
+        value = 0x60000000
+    [[patch.be32]]
+        address = 0x82B7DFA8
+        value = 0x60000000
+    [[patch.be32]]
+        address = 0x82B7DFAC
+        value = 0x60000000
+    # 82B7DFB4 ld r4, 0x50(r1) (the avatar id) -> nop
+    [[patch.be32]]
+        address = 0x82B7DFB4
+        value = 0x60000000
+    # 82B7DFC0 GetResource(id) -> FindResourceByName(name): lwz r7, 0xa8(r8) -> 0xa4
+    [[patch.be32]]
+        address = 0x82B7DFC0
+        value = 0x80E800A4
+    # 82B7D588 lwz r9, 0x228(r10) -> b 0x822D9AD0 (typed guard below)
+    [[patch.be32]]
+        address = 0x82B7D588
+        value = 0x4B75C548
+    # FIGHTER::Initialize model prefix "XAVT:" (0x8216FEDC) -> "BNMD:"
+    [[patch.be32]]
+        address = 0x8216FEDC
+        value = 0x424E4D44
+    # Race-loop actor model prefix "XAVT:" (0x8218B5A4) -> "BNMD:"
+    [[patch.be32]]
+        address = 0x8218B5A4
+        value = 0x424E4D44
+    # Cave 822D9DD8, AI model name format: "ai/<name>" -> "BNMD:_avatar/ai_%s.cfg",
+    # else the plain stand-in (in: r5 = name; out: r4 = format, r5 = argument)
+    [[patch.be32]]
+        address = 0x822D9DD8
+        value = 0x3C80822E
+    [[patch.be32]]
+        address = 0x822D9DDC
+        value = 0x3884A3B8
+    [[patch.be32]]
+        address = 0x822D9DE0
+        value = 0x2B050000
+    [[patch.be32]]
+        address = 0x822D9DE4
+        value = 0x419A0040
+    [[patch.be32]]
+        address = 0x822D9DE8
+        value = 0x89850000
+    [[patch.be32]]
+        address = 0x822D9DEC
+        value = 0x2B0C0061
+    [[patch.be32]]
+        address = 0x822D9DF0
+        value = 0x409A0034
+    [[patch.be32]]
+        address = 0x822D9DF4
+        value = 0x89850001
+    [[patch.be32]]
+        address = 0x822D9DF8
+        value = 0x2B0C0069
+    [[patch.be32]]
+        address = 0x822D9DFC
+        value = 0x409A0028
+    [[patch.be32]]
+        address = 0x822D9E00
+        value = 0x89850002
+    [[patch.be32]]
+        address = 0x822D9E04
+        value = 0x2B0C002F
+    [[patch.be32]]
+        address = 0x822D9E08
+        value = 0x409A001C
+    [[patch.be32]]
+        address = 0x822D9E0C
+        value = 0x89850003
+    [[patch.be32]]
+        address = 0x822D9E10
+        value = 0x2B0C0000
+    [[patch.be32]]
+        address = 0x822D9E14
+        value = 0x419A0010
+    [[patch.be32]]
+        address = 0x822D9E18
+        value = 0x38A50003
+    [[patch.be32]]
+        address = 0x822D9E1C
+        value = 0x3C80822E
+    [[patch.be32]]
+        address = 0x822D9E20
+        value = 0x38849E28
+    [[patch.be32]]
+        address = 0x822D9E24
+        value = 0x4E800020
+    [[patch.be32]]
+        address = 0x822D9E28
+        value = 0x424E4D44
+    [[patch.be32]]
+        address = 0x822D9E2C
+        value = 0x3A5F6176
+    [[patch.be32]]
+        address = 0x822D9E30
+        value = 0x61746172
+    [[patch.be32]]
+        address = 0x822D9E34
+        value = 0x2F61695F
+    [[patch.be32]]
+        address = 0x822D9E38
+        value = 0x25732E63
+    [[patch.be32]]
+        address = 0x822D9E3C
+        value = 0x66670000
+    # 82AE507C lis r11, -0x7deb -> bl cave; 82AE5084 addi r4, r11, -0x7794 -> nop
+    [[patch.be32]]
+        address = 0x82AE507C
+        value = 0x4B7F4D5D
+    [[patch.be32]]
+        address = 0x82AE5084
+        value = 0x60000000
+    # 82B722B4 addi r4, r29, -0x24 -> mr r5, r11; 82B722B8 mr r5, r11 -> bl cave
+    [[patch.be32]]
+        address = 0x82B722B4
+        value = 0x7D655B78
+    [[patch.be32]]
+        address = 0x82B722B8
+        value = 0x4B767B21
+    # AI avatar data (82B7235C lwz r8, 0x228(r3)) -> b 0x822D9B04 (typed guard below)
+    [[patch.be32]]
+        address = 0x82B7235C
+        value = 0x4B7677A8
+    # Deferred avatar update: return without a built model (+0x120); guard at 822DA414
+    [[patch.be32]]
+        address = 0x822DA414
+        value = 0x81630120
+    [[patch.be32]]
+        address = 0x822DA418
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822DA41C
+        value = 0x419A000C
+    [[patch.be32]]
+        address = 0x822DA420
+        value = 0x3F0082EE
+    [[patch.be32]]
+        address = 0x822DA424
+        value = 0x48714A44
+    [[patch.be32]]
+        address = 0x822DA428
+        value = 0x48714DF4
+    # 829EEE60 lwz r11, 0x120(r3) -> b 0x822DA414
+    [[patch.be32]]
+        address = 0x829EEE60
+        value = 0x4B8EB5B4
+    # Typed guards: recorder (822D9AD0, Xbox avatars only) and AI clip players (822D9B04,
+    # vtable +0x154 = 82A8CC28) get the mixer [[model+0x228]+8], else the empty map below
+    [[patch.be32]]
+        address = 0x822D9AD0
+        value = 0x2B0A0000
+    [[patch.be32]]
+        address = 0x822D9AD4
+        value = 0x419A0070
+    [[patch.be32]]
+        address = 0x822D9AD8
+        value = 0x812A0000
+    [[patch.be32]]
+        address = 0x822D9ADC
+        value = 0x3CA0821D
+    [[patch.be32]]
+        address = 0x822D9AE0
+        value = 0x38A5CF64
+    [[patch.be32]]
+        address = 0x822D9AE4
+        value = 0x7F092840
+    [[patch.be32]]
+        address = 0x822D9AE8
+        value = 0x409A005C
+    [[patch.be32]]
+        address = 0x822D9AEC
+        value = 0x812A0228
+    [[patch.be32]]
+        address = 0x822D9AF0
+        value = 0x2B090000
+    [[patch.be32]]
+        address = 0x822D9AF4
+        value = 0x419A0050
+    [[patch.be32]]
+        address = 0x822D9AF8
+        value = 0x80A90008
+    [[patch.be32]]
+        address = 0x822D9AFC
+        value = 0x488A3A94
+    [[patch.be32]]
+        address = 0x822D9B00
+        value = 0x60000000
+    [[patch.be32]]
+        address = 0x822D9B04
+        value = 0x3CA0822E
+    [[patch.be32]]
+        address = 0x822D9B08
+        value = 0x38A59B58
+    [[patch.be32]]
+        address = 0x822D9B0C
+        value = 0x2B030000
+    [[patch.be32]]
+        address = 0x822D9B10
+        value = 0x419A0028
+    [[patch.be32]]
+        address = 0x822D9B14
+        value = 0x81030000
+    [[patch.be32]]
+        address = 0x822D9B18
+        value = 0x81080154
+    [[patch.be32]]
+        address = 0x822D9B1C
+        value = 0x6D0882A8
+    [[patch.be32]]
+        address = 0x822D9B20
+        value = 0x2B08CC28
+    [[patch.be32]]
+        address = 0x822D9B24
+        value = 0x409A0014
+    [[patch.be32]]
+        address = 0x822D9B28
+        value = 0x81030228
+    [[patch.be32]]
+        address = 0x822D9B2C
+        value = 0x2B080000
+    [[patch.be32]]
+        address = 0x822D9B30
+        value = 0x419A0008
+    [[patch.be32]]
+        address = 0x822D9B34
+        value = 0x80A80008
+    [[patch.be32]]
+        address = 0x822D9B38
+        value = 0x7D234B78
+    [[patch.be32]]
+        address = 0x822D9B3C
+        value = 0x80C90008
+    # 822D9B40: back to 82B7236C; 822D9B44: recorder fallback, r5 = empty map, back to 82B7D590
+    [[patch.be32]]
+        address = 0x822D9B40
+        value = 0x4889882C
+    [[patch.be32]]
+        address = 0x822D9B44
+        value = 0x3CA0822E
+    [[patch.be32]]
+        address = 0x822D9B48
+        value = 0x38A59B58
+    [[patch.be32]]
+        address = 0x822D9B4C
+        value = 0x488A3A44
+    # 822D9B58: empty map (two std::maps, head node 822D9B68 links to itself)
+    [[patch.be32]]
+        address = 0x822D9B58
+        value = 0x00000000
+    [[patch.be32]]
+        address = 0x822D9B5C
+        value = 0x00000000
+    [[patch.be32]]
+        address = 0x822D9B60
+        value = 0x822D9B68
+    [[patch.be32]]
+        address = 0x822D9B64
+        value = 0x00000000
+    [[patch.be32]]
+        address = 0x822D9B68
+        value = 0x822D9B68
+    [[patch.be32]]
+        address = 0x822D9B6C
+        value = 0x822D9B68
+    [[patch.be32]]
+        address = 0x822D9B70
+        value = 0x822D9B68
+    [[patch.be32]]
+        address = 0x822D9B74
+        value = 0x00000000
+    # Bone set loop (82A88648): skip missing bones (-1 or null); guard at 822DA42C
+    [[patch.be32]]
+        address = 0x822DA42C
+        value = 0x2C0BFFFF
+    [[patch.be32]]
+        address = 0x822DA430
+        value = 0x41820024
+    [[patch.be32]]
+        address = 0x822DA434
+        value = 0x2C0AFFFF
+    [[patch.be32]]
+        address = 0x822DA438
+        value = 0x4182001C
+    [[patch.be32]]
+        address = 0x822DA43C
+        value = 0x280B0000
+    [[patch.be32]]
+        address = 0x822DA440
+        value = 0x41820014
+    [[patch.be32]]
+        address = 0x822DA444
+        value = 0x280A0000
+    [[patch.be32]]
+        address = 0x822DA448
+        value = 0x4182000C
+    [[patch.be32]]
+        address = 0x822DA44C
+        value = 0x388B0048
+    [[patch.be32]]
+        address = 0x822DA450
+        value = 0x487AE524
+    [[patch.be32]]
+        address = 0x822DA454
+        value = 0x487AE528
+    # 82A88970 addi r4, r11, 0x48 -> b 0x822DA42C
+    [[patch.be32]]
+        address = 0x82A88970
+        value = 0x4B851ABC
+
+[[patch]]
+    name = "Race solo (no AI racers)"
+    desc = "Optional: World Tour courses without the AI racers; the medal times still apply."
+    author = "crash course mod"
+    is_enabled = false
+
+    # Clip count read as 0: 82B6D93C lwz r10, 0x1a80(r1) -> li r10, 0
+    [[patch.be32]]
+        address = 0x82B6D93C
+        value = 0x39400000
+    # 82B6D9DC lwz r11, 0x1a80(r1) -> li r11, 0
+    [[patch.be32]]
+        address = 0x82B6D9DC
+        value = 0x39600000
+    # 82B6DA08 lwz r5, 0x1a80(r1) -> li r5, 0
+    [[patch.be32]]
+        address = 0x82B6DA08
+        value = 0x38A00000
+
+[[patch]]
+    name = "Save progress in the Xbox profile"
+    desc = "Progress was only kept in Xbox LIVE title storage. It is now saved in the Xbox profile, with the star balance, lifetime stars, rewinds and bought courses stashed in unused slots of the saved block."
+    author = "crash course mod"
+    is_enabled = true
+
+    # Load cave 822D9B78: Read(sub = r30, profile+0xA88); result in slot 6 (82AF2CD8)
+    [[patch.be32]]
+        address = 0x822D9B78
+        value = 0x387E0000
+    [[patch.be32]]
+        address = 0x822D9B7C
+        value = 0x389E0640
+    [[patch.be32]]
+        address = 0x822D9B80
+        value = 0x487DBE80
+    # OnLocalLogin: 82AF2024 bl 0x826C8760 (no-op) -> bl load cave
+    [[patch.be32]]
+        address = 0x82AF2024
+        value = 0x4B7E7B55
+    # Save cave 822D9B84: once loaded (profile+0x11CA), stash stars, rewinds and owned
+    # courses / split paths (not with 'Unlock all courses' on), then b Write (82AB5EA8)
+    [[patch.be32]]
+        address = 0x822D9B84
+        value = 0x897F11CA
+    [[patch.be32]]
+        address = 0x822D9B88
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822D9B8C
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822D9B90
+        value = 0x817F1638
+    [[patch.be32]]
+        address = 0x822D9B94
+        value = 0x917F10D8
+    [[patch.be32]]
+        address = 0x822D9B98
+        value = 0x817F163C
+    [[patch.be32]]
+        address = 0x822D9B9C
+        value = 0x917F10DC
+    [[patch.be32]]
+        address = 0x822D9BA0
+        value = 0x817F1644
+    [[patch.be32]]
+        address = 0x822D9BA4
+        value = 0x917F10E0
+    [[patch.be32]]
+        address = 0x822D9BA8
+        value = 0x3D2082B4
+    [[patch.be32]]
+        address = 0x822D9BAC
+        value = 0x81296F58
+    [[patch.be32]]
+        address = 0x822D9BB0
+        value = 0x3D403900
+    [[patch.be32]]
+        address = 0x822D9BB4
+        value = 0x7F095040
+    [[patch.be32]]
+        address = 0x822D9BB8
+        value = 0x419A0064
+    [[patch.be32]]
+        address = 0x822D9BBC
+        value = 0x80BF044C
+    [[patch.be32]]
+        address = 0x822D9BC0
+        value = 0x3CC082EA
+    [[patch.be32]]
+        address = 0x822D9BC4
+        value = 0x80C68B28
+    [[patch.be32]]
+        address = 0x822D9BC8
+        value = 0x80C6000C
+    [[patch.be32]]
+        address = 0x822D9BCC
+        value = 0x38E00000
+    [[patch.be32]]
+        address = 0x822D9BD0
+        value = 0x39000000
+    [[patch.be32]]
+        address = 0x822D9BD4
+        value = 0x2B060000
+    [[patch.be32]]
+        address = 0x822D9BD8
+        value = 0x419A003C
+    [[patch.be32]]
+        address = 0x822D9BDC
+        value = 0x812600C8
+    [[patch.be32]]
+        address = 0x822D9BE0
+        value = 0x7D462A14
+    [[patch.be32]]
+        address = 0x822D9BE4
+        value = 0x39800001
+    [[patch.be32]]
+        address = 0x822D9BE8
+        value = 0x7D8C4830
+    [[patch.be32]]
+        address = 0x822D9BEC
+        value = 0x896A0130
+    [[patch.be32]]
+        address = 0x822D9BF0
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822D9BF4
+        value = 0x409A0008
+    [[patch.be32]]
+        address = 0x822D9BF8
+        value = 0x7CE76378
+    [[patch.be32]]
+        address = 0x822D9BFC
+        value = 0x896A0134
+    [[patch.be32]]
+        address = 0x822D9C00
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822D9C04
+        value = 0x409A0008
+    [[patch.be32]]
+        address = 0x822D9C08
+        value = 0x7D086378
+    [[patch.be32]]
+        address = 0x822D9C0C
+        value = 0x80C60028
+    [[patch.be32]]
+        address = 0x822D9C10
+        value = 0x4BFFFFC4
+    [[patch.be32]]
+        address = 0x822D9C14
+        value = 0x90FF10E4
+    [[patch.be32]]
+        address = 0x822D9C18
+        value = 0x911F10E8
+    [[patch.be32]]
+        address = 0x822D9C1C
+        value = 0x487DC28C
+    # Every save (82AF043C): bl serializer -> bl save cave
+    [[patch.be32]]
+        address = 0x82AF043C
+        value = 0x4B7E9749
+    # Restore cave 822D9C20: balances from the stash, unlock owned courses / split paths,
+    # then the replaced lis r11, -0x7d16
+    [[patch.be32]]
+        address = 0x822D9C20
+        value = 0x817E0C90
+    [[patch.be32]]
+        address = 0x822D9C24
+        value = 0x917E11F0
+    [[patch.be32]]
+        address = 0x822D9C28
+        value = 0x817E0C94
+    [[patch.be32]]
+        address = 0x822D9C2C
+        value = 0x917E11F4
+    [[patch.be32]]
+        address = 0x822D9C30
+        value = 0x817E0C98
+    [[patch.be32]]
+        address = 0x822D9C34
+        value = 0x917E11FC
+    [[patch.be32]]
+        address = 0x822D9C38
+        value = 0x80BE0004
+    [[patch.be32]]
+        address = 0x822D9C3C
+        value = 0x80FE0C9C
+    [[patch.be32]]
+        address = 0x822D9C40
+        value = 0x60E70001
+    [[patch.be32]]
+        address = 0x822D9C44
+        value = 0x811E0CA0
+    [[patch.be32]]
+        address = 0x822D9C48
+        value = 0x3CC082EA
+    [[patch.be32]]
+        address = 0x822D9C4C
+        value = 0x80C68B28
+    [[patch.be32]]
+        address = 0x822D9C50
+        value = 0x80C6000C
+    [[patch.be32]]
+        address = 0x822D9C54
+        value = 0x38000000
+    [[patch.be32]]
+        address = 0x822D9C58
+        value = 0x2B060000
+    [[patch.be32]]
+        address = 0x822D9C5C
+        value = 0x419A0034
+    [[patch.be32]]
+        address = 0x822D9C60
+        value = 0x812600C8
+    [[patch.be32]]
+        address = 0x822D9C64
+        value = 0x7D462A14
+    [[patch.be32]]
+        address = 0x822D9C68
+        value = 0x7CEB4C30
+    [[patch.be32]]
+        address = 0x822D9C6C
+        value = 0x716B0001
+    [[patch.be32]]
+        address = 0x822D9C70
+        value = 0x41820008
+    [[patch.be32]]
+        address = 0x822D9C74
+        value = 0x980A0130
+    [[patch.be32]]
+        address = 0x822D9C78
+        value = 0x7D0B4C30
+    [[patch.be32]]
+        address = 0x822D9C7C
+        value = 0x716B0001
+    [[patch.be32]]
+        address = 0x822D9C80
+        value = 0x41820008
+    [[patch.be32]]
+        address = 0x822D9C84
+        value = 0x980A0134
+    [[patch.be32]]
+        address = 0x822D9C88
+        value = 0x80C60028
+    [[patch.be32]]
+        address = 0x822D9C8C
+        value = 0x4BFFFFCC
+    [[patch.be32]]
+        address = 0x822D9C90
+        value = 0x3D6082EA
+    [[patch.be32]]
+        address = 0x822D9C94
+        value = 0x4E800020
+    # Load result (slot 6): 82AF2D94 lis r11, -0x7d16 -> bl restore cave
+    [[patch.be32]]
+        address = 0x82AF2D94
+        value = 0x4B7E6E8D
+
+[[patch]]
+    name = "Earn and spend stars offline"
+    desc = "Race stars are credited locally, and course, split path and tournament purchases skip the server step; purchases save the profile. Needs 'Save progress in the Xbox profile' (shares its code cave)."
+    author = "crash course mod"
+    is_enabled = true
+
+    # Credit cave 822D9C98 (r27 = slot, r7 = star total): replaced stb; if total > 0,
+    # profile +0x1638 and +0x163C += total, mark dirty
+    [[patch.be32]]
+        address = 0x822D9C98
+        value = 0x9B3C0710
+    [[patch.be32]]
+        address = 0x822D9C9C
+        value = 0x2F070000
+    [[patch.be32]]
+        address = 0x822D9CA0
+        value = 0x4C990020
+    [[patch.be32]]
+        address = 0x822D9CA4
+        value = 0x817B00AC
+    [[patch.be32]]
+        address = 0x822D9CA8
+        value = 0x2B0B0000
+    [[patch.be32]]
+        address = 0x822D9CAC
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822D9CB0
+        value = 0x814B1638
+    [[patch.be32]]
+        address = 0x822D9CB4
+        value = 0x7D4A3A14
+    [[patch.be32]]
+        address = 0x822D9CB8
+        value = 0x914B1638
+    [[patch.be32]]
+        address = 0x822D9CBC
+        value = 0x814B163C
+    [[patch.be32]]
+        address = 0x822D9CC0
+        value = 0x7D4A3A14
+    [[patch.be32]]
+        address = 0x822D9CC4
+        value = 0x914B163C
+    [[patch.be32]]
+        address = 0x822D9CC8
+        value = 0x39400001
+    [[patch.be32]]
+        address = 0x822D9CCC
+        value = 0x994B11D0
+    [[patch.be32]]
+        address = 0x822D9CD0
+        value = 0x4E800020
+    # 82B7D178 stb r25, 0x710(r28) -> bl credit cave
+    [[patch.be32]]
+        address = 0x82B7D178
+        value = 0x4B75CB21
+    # Race end: no credit task, still count it: 82B713EC mr r4, r30 -> b 0x82B7140C
+    [[patch.be32]]
+        address = 0x82B713EC
+        value = 0x48000020
+    # TransferToTwoAccounts: drop the POST task: 82AF0C04 bl -> nop
+    [[patch.be32]]
+        address = 0x82AF0C04
+        value = 0x60000000
+    # Course / split path purchase: drop the server purchase: 82B018D4 bl -> nop
+    [[patch.be32]]
+        address = 0x82B018D4
+        value = 0x60000000
+    # Purchase save cave 822D9CD4: SaveProfile(profile at r31+8)
+    [[patch.be32]]
+        address = 0x822D9CD4
+        value = 0x807F0008
+    [[patch.be32]]
+        address = 0x822D9CD8
+        value = 0x488189E0
+    # Course bought: 822E5FAC bl (telemetry) -> bl purchase save cave
+    [[patch.be32]]
+        address = 0x822E5FAC
+        value = 0x4BFF3D29
+    # Split path bought: 822E5EF8 bl (telemetry) -> bl purchase save cave
+    [[patch.be32]]
+        address = 0x822E5EF8
+        value = 0x4BFF3DDD
+    # Buy remaining tournament courses: drop the server purchase: 82B012E0 bl -> nop
+    [[patch.be32]]
+        address = 0x82B012E0
+        value = 0x60000000
+    # Tournament bought: 822DB62C bl (telemetry) -> bl purchase save cave
+    [[patch.be32]]
+        address = 0x822DB62C
+        value = 0x4BFFE6A9
+
+[[patch]]
+    name = "Stand-in model: no writes to avatar-only fields"
+    desc = "Stores to the avatar field +0x2C0 ran past the smaller stand-in model and corrupted the heap (crash after leaving a race). They skip the stand-in now."
+    author = "crash course mod"
+    is_enabled = true
+
+    # Caves 822D9CE0 (r11) / 822D9CFC (r4): skip on a BONEDMODELRESOURCE (0x821B4D24),
+    # else stw rX, 0x2c0(r3)
+    [[patch.be32]]
+        address = 0x822D9CE0
+        value = 0x81830000
+    [[patch.be32]]
+        address = 0x822D9CE4
+        value = 0x3C00821B
+    [[patch.be32]]
+        address = 0x822D9CE8
+        value = 0x60004D24
+    [[patch.be32]]
+        address = 0x822D9CEC
+        value = 0x7F0C0040
+    [[patch.be32]]
+        address = 0x822D9CF0
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822D9CF4
+        value = 0x916302C0
+    [[patch.be32]]
+        address = 0x822D9CF8
+        value = 0x4E800020
+    [[patch.be32]]
+        address = 0x822D9CFC
+        value = 0x81830000
+    [[patch.be32]]
+        address = 0x822D9D00
+        value = 0x3C00821B
+    [[patch.be32]]
+        address = 0x822D9D04
+        value = 0x60004D24
+    [[patch.be32]]
+        address = 0x822D9D08
+        value = 0x7F0C0040
+    [[patch.be32]]
+        address = 0x822D9D0C
+        value = 0x4D9A0020
+    [[patch.be32]]
+        address = 0x822D9D10
+        value = 0x908302C0
+    [[patch.be32]]
+        address = 0x822D9D14
+        value = 0x4E800020
+    # 829F0B74 stw r11, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x829F0B74
+        value = 0x4B8E916D
+    # 82AFF7EC stw r11, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x82AFF7EC
+        value = 0x4B7DA4F5
+    # 82B6ED24 stw r11, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x82B6ED24
+        value = 0x4B76AFBD
+    # 82B77910 stw r11, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x82B77910
+        value = 0x4B7623D1
+    # 82BBE7B8 stw r11, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x82BBE7B8
+        value = 0x4B71B529
+    # 82BCC128 stw r11, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x82BCC128
+        value = 0x4B70DBB9
+    # 829ECE20 stw r4, 0x2c0(r3) -> bl guard
+    [[patch.be32]]
+        address = 0x829ECE20
+        value = 0x4B8ECEDD

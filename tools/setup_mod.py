@@ -2,11 +2,11 @@
 
 usage: python setup_mod.py [--xenia <folder>] [--build <dir>] [<file or folder> ...]
 
-Inputs: the packages (game, Title Update 2, City Lights DLC) as files, .zip
-files or folders; asks if none are given.
-Builds into <build>/cc1/, installs the title update (and DLC) into Xenia and
-copies the patch file. Then enables the full game and saves Xenia's path for
-the "Play ..." file. setup_gui.py is the window for the same steps.
+Inputs: the packages (CC1: game, Title Update 2, City Lights DLC; CC2: game,
+Title Update 2) as files, .zip files or folders; asks if none are given.
+Per game: build into <build>/cc1|cc2/, install the title update (and DLC)
+into Xenia, copy the patch file. Then enable the full games and save Xenia's
+path for the "Play ..." files. setup_gui.py is the window for the same steps.
 """
 import argparse
 import contextlib
@@ -19,11 +19,12 @@ import sys
 import traceback
 from typing import Callable, NamedTuple, Optional
 
+import build_cc2
 import build_mod
 import install_content
 import stfs
 
-CC1 = 0x58410A71  # title id
+CC1, CC2 = 0x58410A71, 0x5841124F  # title ids
 GAME, UPDATE, DLC = stfs.ARCADE_TITLE, stfs.TITLE_UPDATE, stfs.MARKETPLACE_CONTENT
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -251,6 +252,21 @@ def build_cc1_game(pkgs, out, user):
     install_patch(GAMES[CC1].patch, user)
 
 
+def build_cc2_game(pkgs, out, user):
+    print("\nBuilding the Doritos Crash Course 2 mod (takes about a minute):")
+    game = os.path.join(out, "game")
+    if os.path.isdir(game):
+        shutil.rmtree(game)
+    with stfs.Stfs(pkgs[GAME]) as pkg:
+        n = len(pkg.extract_all(game))
+    print(f"  unpacked the game: {n} files")
+    data_pak = os.path.join(game, "data.pak")
+    build_cc2.main(data_pak, data_pak, os.path.join(out, "preview"))
+    print("\nInstalling Doritos Crash Course 2 into Xenia:")
+    install_content.install(pkgs[UPDATE], user)
+    install_patch(GAMES[CC2].patch, user)
+
+
 GAMES = {g.title: g for g in [
     Game(CC1, "Doritos Crash Course",
          {GAME: "Doritos Crash Course", UPDATE: "Doritos Crash Course Title Update 2",
@@ -260,6 +276,12 @@ GAMES = {g.title: g for g in [
          "fix.",
          "cc1", "Play Doritos Crash Course.bat", "58410A71 - Doritos Crash Course.patch.toml",
          build_cc1_game),
+    Game(CC2, "Doritos Crash Course 2",
+         {GAME: "Doritos Crash Course 2", UPDATE: "Doritos Crash Course 2 Title Update 2"},
+         0x6FBC14D5, "8c074b1442d533bcff40ab97682b8e8218e87891", None,
+         "cc2", "Play Doritos Crash Course 2.bat",
+         "5841124F - Doritos Crash Course 2 (offline).patch.toml",
+         build_cc2_game),
 ]}
 # (title id, content type) -> what that package is called
 NAMES = {(g.title, ctype): name for g in GAMES.values() for ctype, name in g.packages.items()}
@@ -283,8 +305,8 @@ def run(found, xenia, build):
     for note in notes:
         print(note)
     if not games:
-        raise SetupError("Doritos Crash Course was not found among your files (see above for "
-                         "what is missing).")
+        raise SetupError("Neither Doritos Crash Course nor Doritos Crash Course 2 was found "
+                         "among your files (see above for what is missing).")
     user = user_dir(xenia)
     remove_old_layout(build)
     done, failed = [], []
@@ -330,7 +352,8 @@ def main():
     if not games:
         for note in notes:
             print(note)
-        sys.exit("No game package (Doritos Crash Course, XBLA) was found.")
+        sys.exit("No game package (Doritos Crash Course or Doritos Crash Course 2, XBLA) "
+                 "was found.")
     xenia = ask_xenia_folder(args.xenia)
     try:
         done, failed, full = run(found, xenia, args.build)

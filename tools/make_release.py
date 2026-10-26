@@ -13,7 +13,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = "doritos-crash-course-xenia"
 FILES = ["LICENSE", "README.md", "requirements.txt", "setup.bat",
-         "Play Doritos Crash Course.bat"]
+         "Play Doritos Crash Course.bat", "Play Doritos Crash Course 2.bat"]
 FOLDERS = {"patches": (".toml",), "tools": (".py", ".bat")}
 
 
