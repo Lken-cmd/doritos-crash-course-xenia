@@ -167,9 +167,9 @@ def ask_xenia_folder(given):
 
 
 def user_dir(xenia):
-    """Xenia's config/content/patches folder: its own in portable mode
-    (portable.txt), else Documents\\Xenia."""
-    if os.path.isfile(os.path.join(xenia, "portable.txt")):
+    """Xenia's config/content/patches folder: its own on Windows (Canary is
+    portable there by default) or with portable.txt, else Documents\\Xenia."""
+    if os.name == "nt" or os.path.isfile(os.path.join(xenia, "portable.txt")):
         return xenia
     return os.path.join(documents_dir(), "Xenia")
 

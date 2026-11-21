@@ -95,7 +95,7 @@ def _install(src, xenia_dir, override):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Install an Xbox 360 package into Xenia Canary.")
     ap.add_argument("package", help="the package, or a .zip containing it")
-    ap.add_argument("xenia_dir", help="Xenia's folder with content/ (portable) or Documents\\Xenia")
+    ap.add_argument("xenia_dir", help="Xenia's folder with content/ (the one with xenia_canary.exe)")
     ap.add_argument("--override-dir", help="copy these files over the installed ones")
     a = ap.parse_args()
     install(a.package, a.xenia_dir, a.override_dir)

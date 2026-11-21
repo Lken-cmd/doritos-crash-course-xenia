@@ -35,7 +35,9 @@ Coins (real money in the original) are gone.
    | Doritos Crash Course 2 Title Update 2 | for Crash Course 2 | `tu00000002_…` |
 
 2. **[Xenia Canary](https://github.com/xenia-canary/xenia-canary).** Unpack
-   it (for example to `Documents\Xenia Canary`), start it once and close it.
+   it (for example to `Documents\Xenia Canary`), start it once, create a
+   profile in its *Profile* menu and close it. Crash Course 2 needs a
+   signed-in profile to get past its title screen.
 3. **[Python](https://www.python.org/downloads/) 3.8 or newer**, installed
    with the default options.
 
@@ -50,8 +52,20 @@ Coins (real money in the original) are gone.
 4. Close Xenia and click **Install**. It takes a minute or two per game.
 
 Then play with the buttons at the end of the setup, or with
-`Play Doritos Crash Course.bat` / `Play Doritos Crash Course 2.bat`. Sign in
-with a Xenia profile (*Profile* menu) so your progress is saved.
+`Play Doritos Crash Course.bat` / `Play Doritos Crash Course 2.bat`. They
+start the modded copy of the game that setup built; your original game file
+does not have the mod. Stay signed in with your Xenia profile (*Profile*
+menu): Crash Course 2 needs it, and your progress is saved in it.
+
+## Troubleshooting
+
+- **"You must be signed into Xbox LIVE to play this game"**: the mod is not
+  active. Run the setup again with the folder that contains the
+  `xenia_canary.exe` you play with (also when it belongs to a launcher such
+  as Xenia Manager), and start the game with the `Play ...` files. Xenia's
+  title bar shows `[Patches Applied]` when the mod is active.
+- **"A sign-in change occurred"**: no profile is signed in. Create one in
+  Xenia's *Profile* menu and sign in with it.
 
 ## Options (Crash Course 2)
 
@@ -67,7 +81,7 @@ Running the setup again keeps these settings.
 - Everyone is the games' stand-in character, not your own Xbox avatar.
 - Nothing online works in Crash Course 2: online play, leaderboards, Time
   Trials, Avatar FameStar and the Avatar Store. Some Shop tabs are empty because their items came from the servers.
-- Tested with Xenia Canary `02d2cb5` on Direct3D 12.
+- Tested with Xenia Canary `02d2cb5` and `4f04bc7` on Direct3D 12.
 
 ## How it was made
 
